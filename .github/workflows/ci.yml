@@ -1,12 +1,9 @@
 name: CI
 on: [push, pull_request]
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-      - run: pip install -r requirements.txt
-      - run: pytest tests/ -v
+      - run: gcc -o app src/main.c && echo 'Build OK'
+      - run: gcc -o test_app tests/test_main.c && ./test_app

@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 3.15)
-project(SecretManager C)
+cmake_minimum_required(VERSION 3.10)
+project(C-Secret-Manager)
 set(CMAKE_C_STANDARD 11)
-add_executable(secret_manager main.c)
+add_executable(app src/main.c)
+add_executable(test_app tests/test_main.c)
