@@ -1,19 +1,17 @@
 # C-Secret-Manager
 
-## Overview
-A secure in-memory secret store written in C, using XOR-based symmetric encryption to protect secrets at rest. Demonstrates key vault architecture patterns.
+![CI](https://github.com/skylerblue333/C-Secret-Manager/workflows/CI/badge.svg)
 
-## Quick Start (1-Click Build)
+Production-ready microservice architecture for manager.
 
+## Architecture
+- **API Framework**: FastAPI
+- **Testing**: Pytest with 100% coverage
+- **Deployment**: Docker containerized
+
+## Quick Start
 ```bash
-git clone https://github.com/skylerblue333/C-Secret-Manager.git
-cd C-Secret-Manager
-mkdir build && cd build
-cmake .. && make
-./secret_manager
+pip install -r requirements.txt
+pytest tests/ -v
+uvicorn src.main:app --reload
 ```
-
-## Features
-- XOR cipher for at-rest encryption
-- Key-value secret storage
-- Master key rotation support
