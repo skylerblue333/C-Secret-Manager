@@ -1,44 +1,22 @@
-<!-- PORTFOLIO PROJECT PROFILE: maintained by the repository owner -->
+# C Secret Store
 
-## Project profile and code-audit snapshot
+A small bounded in-memory key/value store written in C. It is suitable for demonstrating safe API boundaries and testable storage behavior; it is **not** a secrets vault and does not encrypt values at rest.
 
-**What this is:** **C-Secret-Manager** is a public repository described as: “Secure in-memory secret store with AES-style XOR encryption in C. #SkyCoin4444 #AI #Blockchain #DevOps #Innovation” Its dominant language signals are **C (2 files)**.
+## Implemented behavior
 
-**Why it has value:** Its value is best understood through the implementation evidence currently present in the repository: **16 tracked files** were observed in the shallow audit, with the source structure and existing documentation providing the project’s specific context. This README does not treat a prototype, experiment, or archive as a production system without supporting evidence.
+The store enforces maximum key length, rejects null and empty keys, prevents duplicate keys, distinguishes invalid, full, duplicate, and missing states, supports reset, and uses a shared implementation for the executable and tests. CMake enables C11, strict warnings, and `-Werror`.
 
-**Implementation evidence:** 1 test-related file(s) detected; 1 dependency or package manifest(s) detected; 2 build/CI/infrastructure signal(s) detected; and 3 documentation or governance file(s) detected. Test filenames observed include `tests/test_main.c`. Dependency or package files include `package.json`. Build, CI, or infrastructure signals include `Dockerfile`, `.github/workflows/ci.yml`.
+```bash
+cmake -S . -B build
+cmake --build build
+./build/test_app
+./build/app
+```
 
-**Current status:** The repository is tracked on the `main` branch. The existing source tree, configuration, tests, workflows, and documentation remain authoritative for supported behavior and maturity. A code audit is not a production-readiness certification, and the presence of a test or workflow file does not establish that all checks pass.
+## Validation
 
-**Relationship to the wider portfolio:** This repository is one focused component of the broader Skyler Blue Spillers portfolio across AI, software engineering, cloud and DevOps, cybersecurity, blockchain, finance, education, social systems, and creative work. It may provide a service boundary, implementation pattern, experiment, archive, or reusable idea for related repositories. Treat repositories as technical dependencies only where documented interfaces and verified project requirements support that relationship.
+The test executable covers insertion, lookup, missing keys, duplicate rejection, invalid keys, reset behavior, and bounded key handling. The current build and tests pass with strict compiler warnings enabled.
 
-**Quality and security note:** No obvious secret-like pattern was detected by the limited static scan; this is not a substitute for a security audit. No TODO/FIXME marker was detected in the scanned text files.
+## Scope and security limitations
 
----
-
-# C Secret Manager
-
-![GitHub stars](https://img.shields.io/github/stars/skylerblue333/C-Secret-Manager?style=flat-square)
-![GitHub license](https://img.shields.io/github/license/skylerblue333/C-Secret-Manager?style=flat-square)
-
-## 🌟 Overview
-**C-Secret-Manager** is a professional-grade project within the **SkyCoin4444** ecosystem. It focuses on delivering high-value solutions in the domain of **Software Development**.
-
-## 🚀 Key Features
-- **Scalable Architecture**: Designed for enterprise-level growth and performance.
-- **Modern Standards**: Implements best practices for clean code and maintainability.
-- **Robust Integration**: Built to work seamlessly within modern cloud-native environments.
-
-## 🛠️ Technology Stack
-- **Primary Domain**: Software Development
-- **Ecosystem**: SkyCoin4444 Digital Platform
-
-## 📂 Structure
-The project is organized into a modular structure to ensure clarity and ease of development.
-
-## 👨‍💻 Author
-**Skyler Blue Spillers**
-*Professional Chess Player & Software Engineer*
-
----
-*Powered by SkyCoin4444*
+This repository stores integer values in process memory only. It has no persistence, encryption, access control, audit logging, key rotation, secret-provider integration, or concurrency protection. Do not store real credentials or private keys in it. A production secret-management system requires a reviewed design using an established secrets manager and secure key management. The former “secure,” “enterprise,” and “AES-style XOR encryption” claims were removed because the implementation did not substantiate them.

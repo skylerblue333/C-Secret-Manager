@@ -1,40 +1,21 @@
+#include "store.h"
+
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
-#define MAX_ITEMS 1024
-
-typedef struct {
-    char key[64];
-    int value;
-} Item;
-
-Item store[MAX_ITEMS];
-int store_size = 0;
-
-int add_item(const char* key, int value) {
-    if (store_size >= MAX_ITEMS) return -1;
-    strncpy(store[store_size].key, key, 63);
-    store[store_size].value = value;
-    store_size++;
-    return store_size - 1;
-}
-
-int find_item(const char* key) {
-    for (int i = 0; i < store_size; i++) {
-        if (strcmp(store[i].key, key) == 0) return store[i].value;
+int main(void) {
+    store_reset();
+    if (add_item("alpha", 100) < STORE_OK ||
+        add_item("beta", 200) < STORE_OK ||
+        add_item("gamma", 300) < STORE_OK) {
+        fputs("failed to initialize store\n", stderr);
+        return 1;
     }
-    return -1;
-}
 
-int main() {
-    add_item("alpha", 100);
-    add_item("beta", 200);
-    add_item("gamma", 300);
-    
-    printf("C-Secret-Manager store initialized with %d items\n", store_size);
-    printf("alpha = %d\n", find_item("alpha"));
-    printf("beta = %d\n", find_item("beta"));
-    printf("gamma = %d\n", find_item("gamma"));
+    printf("In-memory store initialized with %zu items\n", store_count());
+    for (const char *key = "alpha"; key != NULL; key = NULL) {
+        int value = 0;
+        if (get_item(key, &value) != STORE_OK) return 1;
+        printf("%s = %d\n", key, value);
+    }
     return 0;
 }
