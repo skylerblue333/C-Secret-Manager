@@ -1,9 +1,59 @@
 name: CI
-on: [push, pull_request]
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
 jobs:
-  build:
+  build-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - run: gcc -o app src/main.c && echo 'Build OK'
-      - run: gcc -o test_app tests/test_main.c && ./test_app
+      - uses: actions/checkout@v4
+      - name: Install native dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake libssl-dev clang
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+      - name: CLI smoke test
+        env:
+          SKY_VAULT_MASTER_KEY_HEX: 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
+          SKY_VAULT_DATA: /tmp/sky-vault-ci.db
+          SKY_VAULT_AUDIT: /tmp/sky-vault-ci.audit
+        run: |
+          printf 'ci-secret\n' | ./build/sky-secret-vault put ci service/token
+          test "$(./build/sky-secret-vault get ci service/token)" = "ci-secret"
+          ./build/sky-secret-vault list ci | grep 'service/token'
+          ./build/sky-secret-vault delete ci service/token
+          test ! -s <(./build/sky-secret-vault list ci)
+          ! grep -q 'ci-secret' "$SKY_VAULT_DATA"
+          ! grep -q 'ci-secret' "$SKY_VAULT_AUDIT"
+
+  sanitizers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y cmake libssl-dev clang
+      - name: Configure ASan/UBSan
+        run: >-
+          cmake -S . -B build-sanitize
+          -DCMAKE_C_COMPILER=clang
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_C_FLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer'
+          -DCMAKE_EXE_LINKER_FLAGS='-fsanitize=address,undefined'
+      - run: cmake --build build-sanitize --parallel
+      - run: ctest --test-dir build-sanitize --output-on-failure
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t sky-secret-vault:ci .
