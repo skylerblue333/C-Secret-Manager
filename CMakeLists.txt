@@ -11,12 +11,12 @@ add_compile_options(-Wall -Wextra -Wpedantic -Werror -Wconversion -Wshadow -Wfor
 
 add_library(skyvault STATIC
     src/crypto.c
+    src/key_loader.c
     src/audit.c
     src/vault.c
 )
 target_include_directories(skyvault PUBLIC src)
 target_link_libraries(skyvault PUBLIC OpenSSL::Crypto)
-
 target_compile_definitions(skyvault PRIVATE _POSIX_C_SOURCE=200809L)
 
 add_executable(sky-secret-vault src/main.c)
