@@ -1,4 +1,5 @@
 #include "crypto.h"
+#include "key_loader.h"
 #include "vault.h"
 
 #include <stdio.h>
@@ -14,7 +15,8 @@ static void usage(const char *program) {
             "  %s delete <namespace> <name>\n"
             "  %s list <namespace>\n"
             "Environment:\n"
-            "  SKY_VAULT_MASTER_KEY_HEX  64 hex chars (32 bytes), required\n"
+            "  SKY_VAULT_MASTER_KEY_FILE path to owner-only file containing 64 hex chars (preferred)\n"
+            "  SKY_VAULT_MASTER_KEY_HEX  64 hex chars (fallback; avoid for long-lived production)\n"
             "  SKY_VAULT_DATA            encrypted record file (default ./vault.db)\n"
             "  SKY_VAULT_AUDIT           metadata audit log (default ./vault.audit.log)\n",
             program, program, program, program);
@@ -39,10 +41,11 @@ int main(int argc, char **argv) {
         return 2;
     }
 
-    const char *key_hex = getenv("SKY_VAULT_MASTER_KEY_HEX");
     uint8_t key[SKY_KEY_BYTES] = {0};
-    if (!crypto_parse_key_hex(key_hex, key)) {
-        fputs("SKY_VAULT_MASTER_KEY_HEX must contain exactly 64 hexadecimal characters\n", stderr);
+    char key_error[192] = {0};
+    if (!key_load_from_runtime(key, key_error, sizeof(key_error))) {
+        fprintf(stderr, "master-key error: %s\n", key_error[0] != '\0' ? key_error : "invalid key configuration");
+        crypto_cleanse(key, sizeof(key));
         return 2;
     }
 
@@ -72,7 +75,10 @@ int main(int argc, char **argv) {
             uint64_t version = 0;
             if (secret == NULL || !read_stdin_secret(secret, SKY_SECRET_MAX, &secret_len)) {
                 fputs("unable to read secret from stdin or secret exceeds 64 KiB\n", stderr);
-                free(secret);
+                if (secret != NULL) {
+                    crypto_cleanse(secret, SKY_SECRET_MAX);
+                    free(secret);
+                }
                 vault_destroy(&v);
                 return 1;
             }
