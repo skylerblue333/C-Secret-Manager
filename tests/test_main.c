@@ -1,18 +1,45 @@
 #define _POSIX_C_SOURCE 200809L
 #include "crypto.h"
+#include "key_loader.h"
 #include "vault.h"
 
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <unistd.h>
+
+static const char *TEST_KEY = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f";
 
 static void test_key_parser(void) {
     uint8_t key[SKY_KEY_BYTES];
-    assert(crypto_parse_key_hex("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f", key));
+    assert(crypto_parse_key_hex(TEST_KEY, key));
     assert(!crypto_parse_key_hex("bad", key));
     crypto_cleanse(key, sizeof(key));
+}
+
+static void test_key_file_loader(void) {
+    char key_template[] = "/tmp/sky-vault-key-XXXXXX";
+    int fd = mkstemp(key_template);
+    assert(fd >= 0);
+    assert(write(fd, TEST_KEY, strlen(TEST_KEY)) == (ssize_t)strlen(TEST_KEY));
+    assert(fchmod(fd, S_IRUSR | S_IWUSR) == 0);
+    close(fd);
+
+    unsetenv("SKY_VAULT_MASTER_KEY_HEX");
+    assert(setenv("SKY_VAULT_MASTER_KEY_FILE", key_template, 1) == 0);
+    uint8_t key[SKY_KEY_BYTES];
+    char error[192] = {0};
+    assert(key_load_from_runtime(key, error, sizeof(error)));
+    crypto_cleanse(key, sizeof(key));
+
+    assert(chmod(key_template, S_IRUSR | S_IWUSR | S_IRGRP) == 0);
+    memset(error, 0, sizeof(error));
+    assert(!key_load_from_runtime(key, error, sizeof(error)));
+
+    unsetenv("SKY_VAULT_MASTER_KEY_FILE");
+    unlink(key_template);
 }
 
 static void test_name_validation(void) {
@@ -25,7 +52,7 @@ static void test_name_validation(void) {
 
 static void test_crypto_round_trip(void) {
     uint8_t key[SKY_KEY_BYTES];
-    assert(crypto_parse_key_hex("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f", key));
+    assert(crypto_parse_key_hex(TEST_KEY, key));
     const uint8_t plaintext[] = "super-secret";
     const uint8_t aad[] = "prod:api:1";
     uint8_t nonce[SKY_NONCE_BYTES];
@@ -51,7 +78,7 @@ static void test_vault_lifecycle(void) {
     close(audit_fd);
 
     uint8_t key[SKY_KEY_BYTES];
-    assert(crypto_parse_key_hex("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f", key));
+    assert(crypto_parse_key_hex(TEST_KEY, key));
     vault v;
     assert(vault_init(&v, data_template, audit_template, key));
     crypto_cleanse(key, sizeof(key));
@@ -83,6 +110,7 @@ static void test_vault_lifecycle(void) {
 
 int main(void) {
     test_key_parser();
+    test_key_file_loader();
     test_name_validation();
     test_crypto_round_trip();
     test_vault_lifecycle();
