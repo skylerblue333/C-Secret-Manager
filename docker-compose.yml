@@ -1,0 +1,20 @@
+services:
+  vault:
+    build: .
+    image: sky-secret-vault:local
+    environment:
+      SKY_VAULT_MASTER_KEY_HEX: ${SKY_VAULT_MASTER_KEY_HEX:?set a 64-character hex master key}
+      SKY_VAULT_DATA: /vault/data/vault.db
+      SKY_VAULT_AUDIT: /vault/data/vault.audit.log
+    volumes:
+      - skyvault-data:/vault/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=0700
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  skyvault-data:
